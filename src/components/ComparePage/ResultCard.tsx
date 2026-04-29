@@ -1,4 +1,6 @@
 import type { RequirementResult } from '../../types'
+import './styles/ResultCard.css'
+
 
 const STATUS = {
   met:     { label: 'Met',     color: 'var(--success)' },

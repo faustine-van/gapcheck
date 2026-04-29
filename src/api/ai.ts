@@ -21,19 +21,34 @@ export const ACCEPTED_TYPES = [
   'text/markdown',
 ].join(',')
 
-// ── File reading utility ──
 export function readFileAsBase64(file: File): Promise<FileAttachment> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => {
       const result = reader.result as string
-      const base64 = result.split(',')[1]
-      resolve({ base64, mimeType: file.type, name: file.name })
+      resolve({ base64: result.split(',')[1], mimeType: file.type, name: file.name })
     }
-    reader.onerror = () =>
-      reject(new Error(`Failed to read file: ${file.name}`))
+    reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`))
     reader.readAsDataURL(file)
   })
+}
+
+function parseGroqError(body: { error?: { message?: string; code?: string } }): string {
+  const msg = body?.error?.message ?? ''
+  const code = body?.error?.code ?? ''
+
+  if (code === 'rate_limit_exceeded' || msg.includes('rate limit')) {
+    return 'Rate limit reached. Wait a moment and try again.'
+  }
+  if (
+    msg.includes('context') ||
+    msg.includes('token') ||
+    msg.includes('length') ||
+    msg.includes('too large')
+  ) {
+    return 'Your files are too large to process together. Try pasting the key sections instead of uploading the full document.'
+  }
+  return msg || 'Something went wrong. Please try again.'
 }
 
 export async function compareRequirements(
@@ -44,52 +59,30 @@ export async function compareRequirements(
 ): Promise<CompareResult> {
   const apiKey = import.meta.env.VITE_GROQ_API_KEY
 
-  // Extract text from files if provided
-  const reqFileText = requirementsFile
-    ? await extractTextFromFile(requirementsFile)
-    : ''
+  const reqFileText  = requirementsFile ? await extractTextFromFile(requirementsFile) : ''
+  const subFileText  = submissionFile   ? await extractTextFromFile(submissionFile)   : ''
 
-  const subFileText = submissionFile
-    ? await extractTextFromFile(submissionFile)
-    : ''
-
-  // Merge typed text + extracted file text
-  const reqContent = [requirements.trim(), reqFileText]
-    .filter(Boolean)
-    .join('\n\n')
-
-  const subContent = [submission.trim(), subFileText]
-    .filter(Boolean)
-    .join('\n\n')
+  const reqContent = [requirements.trim(), reqFileText].filter(Boolean).join('\n\n')
+  const subContent = [submission.trim(),   subFileText].filter(Boolean).join('\n\n')
 
   const systemPrompt = `You are an academic submission checker.
-Your job is to compare assignment requirements against a student's submitted work and determine if each requirement was fulfilled.
+Compare assignment requirements against a student's submitted work and determine if each requirement was fulfilled.
 
-For each distinct requirement you identify, determine:
-- "met" → clearly fulfilled in the submission
-- "partial" → mentioned or attempted but incomplete
+For each distinct requirement identify:
+- "met" → clearly fulfilled
+- "partial" → attempted but incomplete
 - "missing" → not addressed at all
 
 For partial or missing items provide a short specific suggestion (1 sentence).
-For met items, suggestion is an empty string.
+For met items suggestion is an empty string.
 
-You MUST respond ONLY with a valid JSON object. No markdown. No explanation. No extra text. Just raw JSON:
+Respond ONLY with valid JSON, no markdown, no explanation:
 {
   "results": [
-    {
-      "requirement": "short description of the requirement",
-      "status": "met",
-      "suggestion": ""
-    }
+    { "requirement": "...", "status": "met", "suggestion": "" }
   ],
-  "overallSummary": "2 sentence summary of what is good and what needs work"
+  "overallSummary": "2 sentence summary"
 }`
-
-  const userMessage = `ASSIGNMENT REQUIREMENTS:
-${reqContent}
-
-STUDENT SUBMISSION:
-${subContent}`
 
   const response = await fetch(GROQ_URL, {
     method: 'POST',
@@ -102,23 +95,21 @@ ${subContent}`
       temperature: 0.2,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
+        { role: 'user', content: `REQUIREMENTS:\n${reqContent}\n\nSUBMISSION:\n${subContent}` },
       ],
     }),
   })
 
   if (!response.ok) {
-    const err = await response.json()
-    throw new Error(err?.error?.message ?? 'Groq API error')
+    const body = await response.json().catch(() => ({}))
+    throw new Error(parseGroqError(body))
   }
 
   const data = await response.json()
-  const raw = data.choices?.[0]?.message?.content ?? ''
+  const raw  = data.choices?.[0]?.message?.content ?? ''
 
   try {
-    return JSON.parse(
-      raw.replace(/```json|```/g, '').trim()
-    ) as CompareResult
+    return JSON.parse(raw.replace(/```json|```/g, '').trim()) as CompareResult
   } catch {
     throw new Error('Failed to parse AI response. Please try again.')
   }

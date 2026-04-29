@@ -1,0 +1,74 @@
+.input-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.panel-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.panel-hint {
+  font-size: 12px;
+  color: var(--text);
+  margin-top: 2px;
+}
+
+.mode-tabs {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.mode-tab {
+  padding: 5px 12px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  transition: all 0.15s;
+}
+
+.mode-tab + .mode-tab { border-left: 1px solid var(--border); }
+
+.mode-tab.active {
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+}
+
+.panel-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-subtle);
+  color: var(--text-h);
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 220px;
+  transition: border-color 0.15s;
+}
+
+.panel-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.panel-textarea.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}

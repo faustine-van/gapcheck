@@ -1,6 +1,7 @@
 import type { FileAttachment } from '../api/ai'
 
-// ── PDF extraction ──
+const PDF_PAGE_LIMIT = 25
+
 async function extractFromPdf(base64: string): Promise<string> {
   const pdfjs = await import('pdfjs-dist')
 
@@ -16,76 +17,63 @@ async function extractFromPdf(base64: string): Promise<string> {
   }
 
   const pdf = await pdfjs.getDocument({ data: bytes }).promise
-  const pages: string[] = []
+  const pageCount = pdf.numPages
 
-  for (let i = 1; i <= pdf.numPages; i++) {
+  if (pageCount > PDF_PAGE_LIMIT) {
+    throw new Error(
+      `This PDF has ${pageCount} pages. The limit is ${PDF_PAGE_LIMIT} pages. Try uploading a shorter document or paste the key sections as text.`
+    )
+  }
+
+  const pages: string[] = []
+  for (let i = 1; i <= pageCount; i++) {
     const page = await pdf.getPage(i)
     const content = await page.getTextContent()
-    const pageText = content.items
-      .map((item: unknown) => {
-        const i = item as { str?: string }
-        return i.str ?? ''
-      })
+    const text = content.items
+      .map((item: unknown) => (item as { str?: string }).str ?? '')
       .join(' ')
-    pages.push(pageText)
+    pages.push(text)
   }
 
   return pages.join('\n\n').trim()
 }
 
-// ── Image OCR extraction ──
 async function extractFromImage(base64: string, mimeType: string): Promise<string> {
   const { createWorker } = await import('tesseract.js')
   const worker = await createWorker('eng')
-  const imageData = `data:${mimeType};base64,${base64}`
-  const { data } = await worker.recognize(imageData)
+  const { data } = await worker.recognize(`data:${mimeType};base64,${base64}`)
   await worker.terminate()
   return data.text.trim()
 }
 
-// ── Word document extraction ──
 async function extractFromDocx(base64: string): Promise<string> {
   const mammoth = await import('mammoth')
-
   const binary = atob(base64)
   const bytes = new Uint8Array(binary.length)
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i)
   }
-
   const result = await mammoth.extractRawText({ arrayBuffer: bytes.buffer })
   return result.value.trim()
 }
 
-// ── Plain text / markdown ──
 function extractFromText(base64: string): string {
   return atob(base64)
 }
 
-// ── Main entry point ──
-export async function extractTextFromFile(
-  file: FileAttachment
-): Promise<string> {
+export async function extractTextFromFile(file: FileAttachment): Promise<string> {
   const { base64, mimeType } = file
 
-  if (mimeType === 'application/pdf') {
-    return extractFromPdf(base64)
-  }
+  if (mimeType === 'application/pdf') return extractFromPdf(base64)
 
   if (
     mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
     mimeType === 'application/msword'
-  ) {
-    return extractFromDocx(base64)
-  }
+  ) return extractFromDocx(base64)
 
-  if (mimeType.startsWith('image/')) {
-    return extractFromImage(base64, mimeType)
-  }
+  if (mimeType.startsWith('image/')) return extractFromImage(base64, mimeType)
 
-  if (mimeType === 'text/plain' || mimeType === 'text/markdown') {
-    return extractFromText(base64)
-  }
+  if (mimeType === 'text/plain' || mimeType === 'text/markdown') return extractFromText(base64)
 
   throw new Error(`Unsupported file type: ${mimeType}`)
 }

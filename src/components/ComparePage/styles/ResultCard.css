@@ -1,0 +1,42 @@
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.result-card {
+  border: 1px solid var(--border);
+  border-left: 3px solid;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: box-shadow 0.15s;
+}
+
+.result-card:hover { box-shadow: var(--shadow); }
+
+.result-status {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: var(--mono);
+}
+
+.result-req {
+  font-size: 13px;
+  color: var(--text-h);
+  line-height: 1.4;
+}
+
+.result-suggestion {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.4;
+  padding: 8px;
+  border-radius: 4px;
+  background: var(--bg-subtle);
+}
