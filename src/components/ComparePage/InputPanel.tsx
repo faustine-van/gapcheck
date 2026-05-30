@@ -96,23 +96,22 @@ export default function InputPanel({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
     >
-      <div className="panel-header">
-        <div>
-          <p className="panel-label">{label}</p>
-          <p className="panel-hint">{hint}</p>
-        </div>
-        <div className="mode-tabs">
-          <button
-            className={`mode-tab ${mode === 'type' ? 'active' : ''}`}
-            onClick={() => switchMode('type')}
-          >Type</button>
-          <button
-            className={`mode-tab ${mode === 'upload' ? 'active' : ''}`}
-            onClick={() => switchMode('upload')}
-          >Upload</button>
-        </div>
-      </div>
-
+<div className="panel-header">
+  <div className="panel-header-text">
+    <p className="panel-label">{label}</p>
+    <p className="panel-hint">{hint}</p>
+  </div>
+  <div className="mode-tabs">
+    <button
+      className={`mode-tab ${mode === 'type' ? 'active' : ''}`}
+      onClick={() => switchMode('type')}
+    >Type</button>
+    <button
+      className={`mode-tab ${mode === 'upload' ? 'active' : ''}`}
+      onClick={() => switchMode('upload')}
+    >Upload</button>
+  </div>
+</div>
       {mode === 'type' && (
         <textarea
           className={`panel-textarea ${dragging ? 'drag-over' : ''}`}

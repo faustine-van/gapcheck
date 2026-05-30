@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-width: 0;
 }
 
 .panel-header {
@@ -9,18 +10,28 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
+  flex-wrap: nowrap;
+}
+
+.panel-header-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .panel-label {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-h);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .panel-hint {
   font-size: 12px;
   color: var(--text);
   margin-top: 2px;
+  line-height: 1.4;
 }
 
 .mode-tabs {
@@ -51,6 +62,7 @@
 
 .panel-textarea {
   width: 100%;
+  box-sizing: border-box;
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -71,4 +83,9 @@
 .panel-textarea.drag-over {
   border-color: var(--accent);
   background: var(--accent-bg);
+}
+
+@media (max-width: 720px) {
+  .panel-textarea { min-height: 160px; font-size: 16px; }
+  .panel-hint { display: none; }
 }
